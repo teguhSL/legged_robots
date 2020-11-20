@@ -58,6 +58,36 @@ class CostModelSum():
             self.Luu += cost.Luu
             self.Lxu += cost.Lxu
             
+# class CostModelQuadraticTranslation():
+#     '''
+#     The quadratic cost model for the end effector, p = f(x)
+#     '''
+#     def __init__(self, sys, W, p_ref = None):
+#         self.sys = sys
+#         self.Dx, self.Du = sys.Dx, sys.Du
+#         self.W = W
+#         self.p_ref = p_ref
+#         if p_ref is None: self.p_ref = np.zeros(3)
+            
+#     def set_ref(self, p_ref):
+#         self.p_ref = p_ref
+        
+#     def calc(self, x, u):
+#         p,_ = self.sys.compute_ee(x)
+#         self.L = 0.5*(p-self.p_ref).T.dot(self.W).dot(p-self.p_ref) 
+#         return self.L
+    
+#     def calcDiff(self, x, u):
+#         self.J   = self.sys.compute_Jacobian(x)
+#         p,_      = self.sys.compute_ee(x)
+#         self.Lx  = self.J.T.dot(self.W).dot(p-self.p_ref)
+#         self.Lx = np.concatenate([self.Lx, np.zeros(self.Dx/2)])
+#         self.Lu  = np.zeros(self.Du)
+#         self.Lxx = np.zeros((self.Dx, self.Dx))
+#         self.Lxx[:self.Dx/2, :self.Dx/2] = self.J.T.dot(self.W).dot(self.J)
+#         self.Luu = np.zeros((self.Du, self.Du))
+#         self.Lxu = np.zeros((self.Dx, self.Du))
+
 class CostModelQuadraticTranslation():
     '''
     The quadratic cost model for the end effector, p = f(x)
@@ -73,18 +103,50 @@ class CostModelQuadraticTranslation():
         self.p_ref = p_ref
         
     def calc(self, x, u):
-        p,_ = self.sys.compute_ee(x)
+        x,z,_,_ = self.sys.kin_swf(x[:3], x[3:])
+        p = np.array([x,z])
         self.L = 0.5*(p-self.p_ref).T.dot(self.W).dot(p-self.p_ref) 
         return self.L
     
     def calcDiff(self, x, u):
-        self.J   = self.sys.compute_Jacobian(x)
-        p,_      = self.sys.compute_ee(x)
+        self.J   = self.sys.compute_Jacobian_swf(x[:3], x[3:])
+        x,z,_,_      = self.sys.kin_swf(x[:3], x[3:])
+        p = np.array([x,z])        
         self.Lx  = self.J.T.dot(self.W).dot(p-self.p_ref)
         self.Lx = np.concatenate([self.Lx, np.zeros(self.Dx/2)])
         self.Lu  = np.zeros(self.Du)
         self.Lxx = np.zeros((self.Dx, self.Dx))
         self.Lxx[:self.Dx/2, :self.Dx/2] = self.J.T.dot(self.W).dot(self.J)
+        self.Luu = np.zeros((self.Du, self.Du))
+        self.Lxu = np.zeros((self.Dx, self.Du))
+        
+class CostModelQuadraticLinVel():
+    '''
+    The quadratic cost model for the end effector, p = f(x)
+    '''
+    def __init__(self, sys, W, p_ref = None):
+        self.sys = sys
+        self.Dx, self.Du = sys.Dx, sys.Du
+        self.W = W
+        self.p_ref = p_ref
+        if p_ref is None: self.p_ref = np.zeros(3)
+            
+    def set_ref(self, p_ref):
+        self.p_ref = p_ref
+        
+    def calc(self, x, u):
+        x,z,dx,dz = self.sys.kin_hip(x[:3], x[3:])
+        p = np.array([dx,dz])
+        self.L = 0.5*(p-self.p_ref).T.dot(self.W).dot(p-self.p_ref) 
+        return self.L
+    
+    def calcDiff(self, x, u):
+        self.J   = self.sys.compute_Jacobian_vhip(x[:3], x[3:])
+        x,z,dx,dz      = self.sys.kin_hip(x[:3], x[3:])
+        p = np.array([dx,dz])        
+        self.Lx  = self.J.T.dot(self.W).dot(p-self.p_ref)
+        self.Lu  = np.zeros(self.Du)
+        self.Lxx = self.J.T.dot(self.W).dot(self.J)
         self.Luu = np.zeros((self.Du, self.Du))
         self.Lxu = np.zeros((self.Dx, self.Du))
         
