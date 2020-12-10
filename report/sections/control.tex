@@ -1,0 +1,117 @@
+\section{Control}
+\label{sec:control}
+
+
+\subsection{Overview of Control Strategy}
+\label{sec:overview}
+
+In this work, I rely on optimal control to design an efficient locomotion controller. The advantage of this formulation is that the resulting motion is optimal w.r.t. the desired criteria, which can be expressed as an objective function and constraint(s). A high level specification (such as minimizing energy, tracking a desired foot trajectory, tracking a desired torso angle) can be translated quite easily to the objective function. 
+
+However, there are several challenges in implementing the optimal controller to this problem. Firstly, most optimal control strategy is time-based. That is, given a time horizon (e.g. 1 second), solving the optimal control problem will give us a specific control and state trajectory that minimizes the objective function while satisfying the constraints. Some variants are time independent, e.g. when the time horizon is infinite, but it is not suitable for this locomotion problem (where the desired behavior highly depends on time and event, and not stationary). Since the impact timing is difficult to predict precisely (especially given some disturbance), a purely time-based controller is difficult to be used here. Secondly, the dynamics model of our locomotion is discontinuous due to the impact map. This is a big problem for optimal control, as most methods would require the gradient of the dynamics function. 
+
+To overcome these issues, I propose to use the following approach. First, the optimal control is solved for only one step until impact, so that the discontinous event at the impact is not considered. Considering that the locomotion is a periodical motion, designing an optimal trajectory for one step should be sufficient, provided that the state after the impact returns to the initial state. 
+Secondly, we need a controller that is not purely time based or feed forward only. One option is to use a feedback controller (e.g. PD) to track the desired optimal trajectory. However, there is a specific optimal control formulation that provides this automatically, i.e. Iterative Linear Quadratic Regulator (ILQR). Solving ILQR gives us both the optimal trajectories and the optimal feedback controller (note that 'optimal' here refers to local optimum, not the global one). 
+Finally, to choose the optimum parameters for the optimal control, we again rely on an optimization solver (fmin) to ensure that the controller is stable.
+
+\subsection{Iterative Linear Quadratic Regulator (ILQR)}
+\label{sec:ilqr}
+
+A general discrete OCP consists of a cost function
+\begin{equation}
+C(\bm{x}, \bm{u}) = \sum_{t=0}^{T-1} c_t(\bm{x}_t, \bm{u}_t) + c_T(\bm{x}_T, \bm{u}_T),
+\label{eq:general_cost}
+\end{equation}
+subject to the dynamics
+\begin{equation}
+\bm{x}_{t+1} = \bm{f}(\bm{x}_t, \bm{u}_t).
+\label{eq:general_dynamics}
+\end{equation}
+$(\bm{x}, \bm{u})$ are the state and control trajectories for the time horizon $T$. ILQR solves this optimal control problem by iteratively formulating a sub problem as an LQR problem and solve it to obtain a better solution at each iteration.
+
+Let us consider the current guess $(\bm{x}^k, \bm{u}^k)$, where $k$ is the iteration index. Given the general cost function in \eqref{eq:general_cost}, we approximate it as a quadratic function around $(\bm{x}^k, \bm{u}^k)$,
+\begin{multline} 
+\hfill
+\centering
+c_t(\delta\bm{x}_t, \delta\bm{u}_t) = \frac{1}{2} 
+\begin{bmatrix}
+\delta \bm{x}_t \\ \delta \bm{u}_t 
+\end{bmatrix}
+^\trsp
+\begin{bmatrix}
+\bm{c}_{\bm{xx},t} & \bm{0} \\ \bm{0} & \bm{c}_{\bm{uu},t}
+\end{bmatrix}
+\begin{bmatrix}
+\delta \bm{x}_t \\ \delta \bm{u}_t 
+\end{bmatrix}
+ + 
+\begin{bmatrix}
+\bm{c}_{\bm{x},t} &  \bm{c}_{\bm{u},t}
+\end{bmatrix}
+\begin{bmatrix}
+\delta \bm{x}_t \\ \delta \bm{u}_t 
+\end{bmatrix},
+\label{eq:quadratized_cost}
+\end{multline}
+where $\bm{c}_{\bm{x},t}, \bm{c}_{\bm{u},t}, \bm{c}_{\bm{xx},t},$ and $\bm{c}_{\bm{uu},t}$ are the cost function's first and second order derivatives with respect to $\bm{x}$ and $\bm{u}$. Similarly, we can approximate the dynamics in \eqref{eq:general_dynamics} using the linear approximation
+\begin{equation}
+\delta \bm{x}_t = \bm{A}_t \delta \bm{x}_t + \bm{B}_t \delta \bm{u}_t,
+\label{eq:linearized_dynamics}
+\end{equation}
+where $\bm{A}_t$ and $\bm{B}_t$ are the derivatives of the dynamics $\bm{f}(\bm{x}_t, \bm{u}_t)$ with respect to $\bm{x}_t$ and $\bm{u}_t$, respectively. The derivatives are evaluated at the current guess $(\bm{x}^k, \bm{u}^k)$. At this stage, we have quadratic costs and linear dynamics as functions of $\delta\bm{x}$ and $\delta\bm{u}$. This is therefore a time-varying LQR problem, of which the variables of interest are $\delta\bm{x}$ and $\delta\bm{u}$, and the solution can be computed analytically. 
+
+By the end of ILQR iteration, we will have a locally optimal solution as state and control trajectories $(\bm{x}^*, \bm{u}^*)$, as well as the optimal feedback term $\bm{K}_t$. To use this feedback term, at online execution we compute the control command by 
+\begin{equation}
+\bm{u}_t = \bm{u}_t^* + \bm{K}_t (\bm{x}_t - \bm{x}_t^*).
+\end{equation}
+This optimal feedback term serves as a locally optimal PD controler to track the optimal trajectories $(\bm{x}^*, \bm{u}^*)$. 
+
+\subsection{ILQR formulation for the locomotion}
+For the locomotion problem, we consider the initial state $\bm{x}_0$ to be the state right after an impact, and the end state $\bm{x}_T$ to be at the next predicted impact. It turns out that formulating the objective function for this problem is complicated, due to the event detection. I previously try using an objective function to only reach the desired end state $\bm{x}_T$, but this often results in failure because the swing foot touches the ground before reaching $\bm{x}_T$. In this event based detection, the swing foot trajectory is very important. Another variable that is also important is the torso angle ($\bm{q}_3$). This needs to be kept small enough, otherwise the motion is often unstable. 
+
+After a lot of trials, the objective function that is found to be working is to track a desired foot swing trajectory, while keeping the torso angle to be around a desired angle. The running cost, i.e. the cost for $t = [0, T-1] $ is set to be
+\begin{equation}
+c(\bm{x}_t, \bm{u}_t) = (\bm{r}_{swf, t} - \bm{r}_{swf, t}^*)^\trsp \bm{W} (\bm{r}_{swf,t} - \bm{r}_{swf, t}^*) + \bm{u_t}^T \bm{R} \bm{u}_t,
+\end{equation}
+while the terminal cost at $t = T$ is set to be 
+\begin{equation}
+c(\bm{x}_T, \bm{u}_T) = (\bm{r}_{swf, T} - \bm{r}_{swf, T}^*)^\trsp \bm{W}_T (\bm{r}_{swf, T} - \bm{r}_{swf, T}^*).
+\end{equation}
+
+The constraint on the control input is a box constraint, 
+\begin{equation}
+-30 \leq \bm{u}_i \leq 30 \quad \text{for} \quad  i = 1, 2 . 
+\end{equation}
+
+To solve this constrained ILQR problem, I use the open source solver Crocoddyl. It uses the box-FDDP algorithm that accepts infeasible initial guess $(\bm{x}^0, \bm{u}^0)$. 
+
+\subsection{Optimization Strategy}
+\label{sec:opt_strat}
+
+To use the optimal control formulation, we have to choose the following parameters $\bm{\Phi}$:
+\begin{itemize}
+\item The initial state $(\bm{q}_0, \dot{\bm{q}_0}$
+\item The desired torso angle $\alpha$
+\item The desired goal position for the swing foot $x_{swf,T}^*$
+\end{itemize}
+
+Although optimal control formulation is powerful, finding the optimal parameters for a desired objective of this particular locomotion problem turns out to be challenging. Instead of starting from random initial guess, I rely on the standard controller discussed in Section~\ref{sec:control_opt}. For a given desired criteria (e.g. a desired speed, step length etc.), first I optimize this standard controller to achieve the criteria, and observe the corresponding parameters $\bm{\Phi}$. Using this with the ILQR often results in failure, i.e. unstable controller, as the ILQR is still time based and depend a lot on the impact event. So we need to further optimize $\bm{\Phi}$ to obtain a good controller.
+
+To make the optimization tractable, I do it step by step. First, I optimize for only one foot step. Since a stable controller will have a stable limit cycle, the next state after the impact should be very close to the initial state. So I design the objective function for the optimization to be 
+\begin{equation}
+f(\bm{\Phi}) = (\bm{x}_0 - \bm{x}_T^+)^T \bm{x}_0 - \bm{x}_0,
+\end{equation}
+where $\bm{x}_0$ is the initial state, and $\bm{x}_T^+$ is the final state after the impact (i.e. the initial state for the next foot step). By ensuring that $\bm{x}_0$ is as close as possible to $\bm{x}_T^+$, we can have a stable limit cycle. 
+
+In practice, optimizing for only one foot step only makes a stable controller for a few foot steps, as the error diverges. When this happens, the optimization is run again, but this time with a longer foot steps, and initialized using the previously obtained parameters. Doing this iteratively often results in a controller that is stable for a large number of foot steps, even to infinity. 
+
+\subsection{Results and Discussion}
+\label{sec:results}
+
+
+\subsection{Conclusion}
+\label{sec:conclusion}
+
+
+
+
+

@@ -1,0 +1,69 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage{wrapfig}
+\usepackage{lastpage}
+\usepackage[utf8]{inputenc}
+\usepackage[pdftex,hyperfigures,hyperindex,bookmarksnumbered,colorlinks, bookmarks, breaklinks, linktocpage,citecolor=blue,urlcolor=blue,linkcolor=black,]{hyperref}
+\usepackage{graphicx}
+\usepackage{bm}
+\usepackage{amsmath} 
+\usepackage{amssymb}  
+\usepackage{booktabs,multirow}
+
+\usepackage{todonotes}
+\usepackage{paralist}
+
+\usepackage{physics}
+
+\usepackage[binary-units=true]{siunitx}
+\usepackage[caption=false]{subfig}
+
+\graphicspath{{./figures/}} %Setting the graphicspath
+
+%add subsubsubsection command
+\makeatletter
+\newcounter {subsubsubsection}[subsubsection]
+\renewcommand\thesubsubsubsection{\thesubsubsection .\@arabic\c@subsubsubsection}
+\newcommand\subsubsubsection{\@startsection{subsubsubsection}{4}{\z@}%
+                                     {-3.25ex\@plus -1ex \@minus -.2ex}%
+                                     {1.5ex \@plus .2ex}%
+                                     {\normalfont\normalsize\bfseries}}
+\newcommand*\l@subsubsubsection{\@dottedtocline{3}{10.0em}{4.1em}}
+\newcommand*{\subsubsubsectionmark}[1]{}
+\makeatother
+
+\newcommand{\trsp}{{\scriptscriptstyle\top}}
+
+
+
+\usepackage{geometry}
+\geometry{a4paper, right=2cm, bottom=2.5cm, textwidth=17cm, textheight=24cm}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+
+\usepackage[style=numeric, giveninits=true, defernumbers=true, backend=bibtex, maxnames=2, sorting=none, doi=false, isbn=false, url=false, eprint=false]{biblatex}
+\usepackage{pdfpages} 
+\title{Exploration of control strategies for a three-link 2D biped}
+\author{Teguh Santoso Lembono}
+
+%\addbibresource{references.bib}
+
+
+
+\begin{document}
+
+
+\maketitle
+
+\input{sections/intro.tex}
+\input{sections/theory.tex}
+\input{sections/control.tex}
+
+
+
+\newpage
+%\bibliographystyle{IEEEtran} 
+%\bibliography{references}
+\printbibliography
+
+
+\end{document}
