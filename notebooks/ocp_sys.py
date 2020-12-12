@@ -441,6 +441,10 @@ class Biped_Casadi():
         
         self.x = MX.sym('x', self.Dx)
         self.u = MX.sym('u', self.Du)
+        
+        self.use_noise = False
+        self.noise_idx = 0
+        self.noise = None
        
     def set_control(self, control_opt = 'std', ilqr = None, xs_ref = None, ddqs_ref = None, Kp = 100*np.eye(3), Kd = 100*np.eye(3), Q = 100*np.eye(3), max_control = 60):
         self.control_opt = control_opt
@@ -454,6 +458,12 @@ class Biped_Casadi():
             self.Q = Q
             self.max_control = max_control
             self.ddqs_ref = ddqs_ref
+            
+    def set_noise(self, noise):
+        self.q_noise = noise[:,:3]
+        self.dq_noise = noise[:,3:]
+        self.noise_idx = 0
+        self.use_noise = True
             
     def compute_Jacobian_swf(self, q, dq = None):
         J = np.zeros((2,3))
@@ -859,8 +869,12 @@ class Biped_Casadi():
     
     def control(self, t, q, dq, parameters):
         #add noises
-#         q = q + self.q_noise[self.noise_idx]
-#         dq = dq + self.dq_noise[self.noise_idx]
+        if self.use_noise is True:
+            q = q + self.q_noise[self.noise_idx]
+            dq = dq + self.dq_noise[self.noise_idx]
+            self.noise_idx += 1
+            if self.noise_idx == len(self.q_noise):
+                self.noise_idx = 0
         
         kp1 = parameters[0];
         kp2 = parameters[1];
@@ -931,6 +945,7 @@ class Biped_Casadi():
         return np.array(xs)
 
     def solve_eqns(self, q0, dq0, num_steps, parameters, retrain = False, retrain_iter = 5):
+        self.noise_idx = 0
         
         #options = odeset('RelTol',1e-5, 'Events', @event_func);
         h = self.dT; # time step
@@ -945,7 +960,7 @@ class Biped_Casadi():
             tic = time.time()
             eqns_std = partial(self.eqns, t0 = t0, parameters = parameters )
             tspan = np.arange(t0, t0+tmax-1e-4, h)
-            sol = solve_ivp(eqns_std, (t0, t0+tmax),  y0, t_eval = np.arange(t0, t0+tmax-1e-4, h), events = event_func, rtol = 1e-5)            
+            sol = solve_ivp(eqns_std, (t0, t0+tmax),  y0, t_eval = np.arange(t0, t0+tmax-1e-4, h), events = event_func, rtol = 1, max_step=0.001, atol = 1)            
             toc = time.time()
             sln['T'] += [sol.t]
             sln['Y'] += [sol.y.T]
@@ -975,21 +990,22 @@ class Biped_Casadi():
         return u
     
     def control_ilqr(self, t, y, t0):
+
         t_step = int((t- t0)/self.dT)
         #print(t_step)
         if t_step >= len(self.ilqr.us):
             t_step = len(self.ilqr.us)-1
-        #calculate t_step based on the nearest neighbor
-        #dist = np.linalg.norm(y - ilqr.xs, axis=1)
-        #t_step = np.argmin(dist)
-#         dist, idx = self.nn.kneighbors(y[None,:])
-#         t_step = idx[0][0]
-#         #print(t_step)
-#         if t_step >= len(self.ilqr.K):
-#             t_step = len(self.ilqr.K)-1
-        u = self.ilqr.us[t_step] - self.ilqr.K[t_step].dot(y - self.ilqr.xs[t_step])    # for crocoddyl
-    
+
+        if self.use_noise is True:
+            q, dq = y[:3].copy(), y[3:].copy()
+            q = q + self.q_noise[self.noise_idx]
+            dq = dq + self.dq_noise[self.noise_idx]
+            y = np.concatenate([q, dq])
+            self.noise_idx += 1
+            if self.noise_idx == len(self.q_noise):
+                self.noise_idx = 0
         
+        u = self.ilqr.us[t_step] - self.ilqr.K[t_step].dot(y - self.ilqr.xs[t_step])    # for crocoddyl    
         #u = self.ilqr.us[t_step] + self.ilqr.K[t_step].dot(y-self.ilqr.xs[t_step]) #for Teguh ilqr
         return self.clamp(u)
     
