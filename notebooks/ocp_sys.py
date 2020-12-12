@@ -741,7 +741,7 @@ class Biped_Casadi():
         z_swfs = np.array(z_swfs)
         return z_swfs
     
-    def analyse(self, sln, parameters=None,  to_plot = True, Umax = 30):
+    def analyse(self, sln, parameters=None,  to_plot = True, Umax = 30, to_save = False, filename = ''):
         x_hs, dx_hs, dx_hs_mean, z_hs, dz_hs = [], [], [], [], []
         x_swfs, dx_swfs, z_swfs, dz_swfs = [], [], [], []      
         qs, dqs, us = [], [], []
@@ -852,10 +852,16 @@ class Biped_Casadi():
 
             
         print('COT: {0:.2f}, Dist: {1:.3f}, dT: {2:.3f}'.format(results['cot'], results['ds'][-1], results['dts'][-1]))
+        if to_save:
+            plt.savefig(filename, dpi = 500)
         return results
     
     
     def control(self, t, q, dq, parameters):
+        #add noises
+#         q = q + self.q_noise[self.noise_idx]
+#         dq = dq + self.dq_noise[self.noise_idx]
+        
         kp1 = parameters[0];
         kp2 = parameters[1];
         kd1 = parameters[2];
@@ -1087,7 +1093,7 @@ def event_func(t, y):
     q = y[:3]
     dq = y[3:]
     _, z_swf, _,_ = kin_swf(q, dq)
-    value = z_swf + 0.01 #0.01* cos(q[0]) + 0.0001
+    value = z_swf + 0.01* cos(q[0]) + 0.0001
     return value
 event_func.terminal = 1
 event_func.direction = -1

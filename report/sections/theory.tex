@@ -4,6 +4,7 @@
 \begin{figure}[h!]
 \centering
 \includegraphics[width = 0.4\columnwidth]{simplified_model}
+\caption{The simplified humanoid model used in this report.}
 \label{fig:simplified_model}
 \end{figure}
 
@@ -11,7 +12,7 @@ The simplified model of the humanoid is shown in Fig.~\ref{fig:simplified_model}
 
 \subsection{Kinematics}
 \label{sec:kine}
-The kinematics can be easily calculated by considering the stance foot location as the origin of the coordinate frame, as shown in Fig.~\ref{fig:simplified_model}. The points of interests are then the location of each mass ($\bm{p}_1, \bm{p}_2, \bm{p}_3$), the hip ($\bm{p}_h$), and the swing foot ($\bm{p}_{swf}$). Each point $\bm{p}$ consists of the $x$ and $z$ coordinates for this 2D model. By simple geometry, we obtain
+The kinematics can be easily calculated by considering the stance foot location as the origin of the coordinate frame, as shown in Fig.~\ref{fig:simplified_model}. The points of interests are then the location of each mass ($\bm{r}_1, \bm{r}_2, \bm{r}_3$), the torso ($\bm{r}_t$), the hip ($\bm{r}_h$), and the swing foot ($\bm{r}_{swf}$). Each point $\bm{r}$ consists of the $x$ and $z$ coordinates. By simple geometry, we obtain
 \begin{align}
 x_1 = &  0.5*l_1*sin(q_1) \\
 z_1 = & 0.5*l_1*cos(q_1) \\
@@ -29,10 +30,10 @@ z_t = & l_1*cos(q_1)+ l_3*cos(q_3).
 
 The corresponding velocities can then be computed using chain rule, i.e.
 \begin{equation}
-\dv{\bm{p}}{t} = \pdv{\bm{p}}{\bm{q}} \pdv{\bm{q}}{t}.
+\dv{\bm{r}}{t} = \pdv{\bm{r}}{\bm{q}} \pdv{\bm{q}}{t}.
 \end{equation}
 
-Using the symbolic programming in matlab or python, it can be done automatically. 
+Using the symbolic programming in matlab or python, the velocity calculation can be done automatically. 
 
 \subsection{Dynamics}
 \label{sec:dyn}
@@ -40,7 +41,7 @@ To obtain the dynamic equation of the locomotion model, the dynamics is divided 
 
 To describe the dynamics of the swing phase, we can rely on Lagrangian dynamics. First, we found the expression of the total kinetic and potential energy ($T$ and $V$),
 \begin{align}
-T = & \sum_{i=1}^{3} \frac{1}{2} m_i \dv{\bm{p}_i}{t}^2 \\
+T = & \sum_{i=1}^{3} \frac{1}{2} m_i \dv{\bm{r}_i}{t}^2 \\
 V = & \sum_{i=1}^{3} m_i g z_i.
 \end{align}
 
@@ -62,9 +63,9 @@ After obtaining the equations for $i = 1, 2, 3$, we can rearrange them in the fo
 \label{eq:total_standard}
 \end{equation}
 
-The terms $\bm{M}(\bm{q}), \bm{C}(\dot{\bm{q}},\ddot{\bm{q}})$, and $\bm{G}({\bm{q}})$ cna be computed from \eqref{eq:total_standard} as follows. $\bm{G}(\bm{q})$ is computed by setting $(\dot{\bm{q}}, \dot{\bm{q}}, \bm{\tau})$ in \eqref{eq:total_standard} to zero. 
-$\bm{M}(\bm{q})$ is computed by setting $(\dot{\bm{q}},\bm{\tau})$ in \eqref{eq:total_standard} to zero, and substract the term $\bm{G}(\bm{q})$ from the equation. Finally, $\bm{C}(\dot{\bm{q}})$ is computed by setting 
-$(\ddot{\bm{q}}, \bm{\tau})$ to zero, substract the term $\bm{G}(\bm{q})$ from the equation, and divide by the corresponding $\dot{\bm{q}}$. 
+The terms $\bm{M}(\bm{q}), \bm{C}({\bm{q}},\dot{\bm{q}})$, and $\bm{G}({\bm{q}})$ can be computed from \eqref{eq:total_standard} as follows. $\bm{G}(\bm{q})$ is computed by setting $(\dot{\bm{q}}, \ddot{\bm{q}}, \bm{\tau})$ in \eqref{eq:total_standard} to zero. 
+$\bm{M}(\bm{q})$ is computed by setting $(\dot{\bm{q}},\bm{\tau})$ in \eqref{eq:total_standard} to zero, substracting the term $\bm{G}(\bm{q})$ from the equation. Finally, $\bm{C}(\bm{q}, \dot{\bm{q}})$ is computed by setting 
+$(\ddot{\bm{q}}, \bm{\tau})$ to zero, substracting the term $\bm{G}(\bm{q})$ from the equation, and dividing by the corresponding $\dot{\bm{q}}$. 
 
 \subsection{Impact Map}
 \label{sec:impact}
@@ -74,6 +75,7 @@ $(\ddot{\bm{q}}, \bm{\tau})$ to zero, substract the term $\bm{G}(\bm{q})$ from t
 \includegraphics[width = 0.4\columnwidth]{before_impact}
 \hspace{0.5cm}
 \includegraphics[width = 0.4\columnwidth]{after_impact}
+\caption{Diagram for angular momentum conservation at the impact point. \emph{Left}: before impact, \emph{right}: after impact. }
 \label{fig:impact}
 \end{figure}
 
@@ -83,6 +85,7 @@ $(\ddot{\bm{q}}, \bm{\tau})$ to zero, substract the term $\bm{G}(\bm{q})$ from t
 \includegraphics[width = 0.4\columnwidth]{before_impact2}
 \hspace{0.5cm}
 \includegraphics[width = 0.4\columnwidth]{after_impact2}
+\caption{Diagram for angular momentum conservation at the hip. \emph{Left}: before impact, \emph{right}: after impact. }
 \label{fig:impact2}
 \end{figure}
 
@@ -91,23 +94,24 @@ In our model, after the impact we switch the swing foot to become the stance foo
 \begin{align}
 q_1^+ = & q_2^- \\
 q_2^+ = & q_1^- \\
-q_3^+ = & q_3^-.
+q_3^+ = & q_3^-,
 \end{align}
+the superscripts $(^-, ^+)$ refer to the variables before and after impact, respectively. 
 
 The impact map for the angular velocity can be computed by considering the conservation of angular momentum at the impact at two locations: the impact point (the location of the swing foot at the impact), and at the hip. 
 
-Looking at Fig.~\ref{fig:impact} (left), the momentum before the impact can be written as:
-\begin{align}
-H_a^- = \sum_{i=1}^{3} m_i \bm{r}_{{om}_i}^{-} \cross \dot{\bm{r}_i}^{-} \\
-H_b^- = m_1 \bm{r}_{hm_1}^- \cross \dot{\bm{r}_1^-} \\
-H_c^- = m_3 \bm{r}_{hm_3}^- \cross \dot{\bm{r}_3^-},
-\end{align}
+Looking at Fig.~\ref{fig:impact} and \ref{fig:impact2}, the momentum before the impact can be written as:
+\begin{alignat}{2}
+H_a^- = & \quad\sum_{i=1}^{3} m_i \bm{r}_{{om}_i}^{-} \cross \dot{\bm{r}_i}^{-} && = \quad \sum_{i=1}^{3} m_i (\bm{r}_i^{-} - \bm{r}_{swf}^{-}) \cross \dot{\bm{r}_i}^{-}\\
+H_b^- = &\quad m_1 \bm{r}_{hm_1}^- \cross \dot{\bm{r}_1^-} && = \quad m_1 (\bm{r}_{1}^- - \bm{r}_{h}^-) \cross \dot{\bm{r}_1^-} \\
+H_c^- = &\quad m_3 \bm{r}_{hm_3}^- \cross \dot{\bm{r}_3^-} && = \quad m_3 (\bm{r}_3^- - \bm{r}_h^-) \cross \dot{\bm{r}_3^-},
+\end{alignat}
 and after impact as
-\begin{align}
-H_a^+ = \sum_{i=1}^{3} m_i \bm{r}_{{om}_i}^{+} \cross \dot{\bm{r}_i}^{+} \\ 
-H_b^+ = m_1 \bm{r}_{hm_2}^+ \cross \dot{\bm{r}_2^+} \\
-H_c^+ = m_3 \bm{r}_{hm_3}^+ \cross \dot{\bm{r}_3^+}.
-\end{align}
+\begin{alignat}{2}
+H_a^+ = &\quad \sum_{i=1}^{3} m_i \bm{r}_{{om}_i}^{+} \cross \dot{\bm{r}_i}^{+} && = \sum_{i=1}^{3} m_i \bm{r}_i^{+} \cross \dot{\bm{r}_i}^{+}\\ 
+H_b^+ = & \quad m_1 \bm{r}_{{hm}_2}^+ \cross \dot{\bm{r}_2^+} && = m_1 (\bm{r}_{2}^+ - \bm{r}_{h}^+ ) \cross \dot{\bm{r}_2^+} \\
+H_c^+ = & \quad m_3 \bm{r}_{{hm}_3}^+ \cross \dot{\bm{r}_3^+} && = m_3 (\bm{r}_{3}^+ - \bm{r}_{h}^+) \cross \dot{\bm{r}_3^+}.
+\end{alignat}
 
 We can rearrange the equations to obtain $\bm{H}^- = \bm{A}_{\_} \dot{\bm{q}}^-$ and $\bm{H}^- = \bm{A}_{+} \dot{\bm{q}}^+$. Then we can obtain the velocities after the impact by solving the linear equation $\bm{H}^- = \bm{H}^+$, 
 \begin{equation}
@@ -117,19 +121,20 @@ We can rearrange the equations to obtain $\bm{H}^- = \bm{A}_{\_} \dot{\bm{q}}^-$
 \subsubsection{Exercise Answers}
 \begin{itemize}
 \item Q: \emph{What can you say about the potential energy before and after impact?} 
-The potential energy before and after impact does not differ, because the position of each mass remains the same. What changes after the impact is only the kinetic energy.
-\item Q: \emph{Try $q_m = [pi/6, -pi/6, pi/10], dq_m = [1, 0.2, 0]$. What percentage of the kinetic energy of the biped is lost due to the impact?}  
+The potential energy before and after impact do not differ, because the position of each mass remains the same. What changes after the impact is only the kinetic energy.
+\item Q: \emph{Try $q_m = [\pi/6, -\pi/6, \pi/10], dq_m = a[1, 0.2, 0]$. What percentage of the kinetic energy of the biped is lost due to the impact?}  
 There is 27.92\% of the kinetic energy lost due to the impact. 
 \item Q: \emph{Plot the percentage of the kinetic energy loss due to impact as a function of angle $\alpha$ where $q^- = [\alpha, -\alpha, 0]$  and $\alpha$ varies from 0 to $\pi/4$. Assume that $\dot q^- = [1, 0.2, 0]$. Include your plot.}
-\includegraphics[width=0.6\columnwidth]{alpha_kineticloss}
-\item Q: \emph{The bigger $\alpha$ is the bigger is the step length. Based on your answer to question 3, what is the relation between step length and energy loss at impact given a fixed $\dot q^-$?}
+\centering{\includegraphics[width=0.6\columnwidth]{alpha_kineticloss}}
+
+\raggedright \item Q: \emph{The bigger $\alpha$ is the bigger is the step length. Based on your answer to question 3, what is the relation between step length and energy loss at impact given a fixed $\dot q^-$?}
 As the step length grows bigger, the energy loss increases.    
 \end{itemize}
 
 \subsection{Model Validation and Animation}
 \label{sec:validation}
-
-
+Using the kinematics, dynamics, and impact map functions, we can run a simulation of the locomotion model, given a particular controller. The simulation is run using numerical integration, which is described in the next section. 
+%
 \subsubsection{Exercise Answers}
 \begin{itemize}
 \item \emph{ In the animations, what does a real-time factor of 1 mean? How about a real-time factor less than 1?}
@@ -142,6 +147,58 @@ r0 is the location of the supporting foot. This is necessary because the coordin
 
 \subsection{Numerical Integration}
 \label{sec:num_int}
+
+At each step, we run the numerical integration of the swing phase dynamics, while checking if the swing foot crosses the ground. This can be defined as an event function that is checked in the numerical integrator at each function evaluation. For the integrator, I am using \emph{solve\_ivp} from the scipy library in python. 
+
+\subsubsection{Exercise Answer for Explicit Euler}
+\begin{figure}[h!]
+\centering
+\includegraphics[width=.4\columnwidth]{exp_euler1}
+\quad
+\includegraphics[width=.4\columnwidth]{exp_euler2}
+\caption{State space plot for explicit euler. \emph{Left}: $dt =0.1$, \emph{right}: $dt = 0.002$.}
+\label{fig:exp_euler}
+\end{figure}
+
+
+\begin{itemize}
+\item \emph{Explain the meaning of the state-space plot (right subfigure). What should be the expected state-space plot (hint: change visualize function)?}
+The state space plot shows the evolution of the joint angle $\bm{q}$ and its velocity $\dot{\bm{q}}$ over time. Since the damping coefficient here is zero, the system should have a stable oscillation, i.e. the movement should be periodical and after one period we should go back to the same point on the phase plot. What is shown here, though, is a spiralling movement whose radius is increasing, showing that the energy of the system increases as time goes on, due to the inaccuracy of Explicit Euler method.
+\item \emph{Why does the numerical solution diverges from the true solution (hint: Taylor expansion)?}
+Explicit Euler uses a first order Taylor expansion to approximate the integration, this results in a quite significant error, especially when the time interval is large (0.1 in this case). This results in energy increase as the integration is performed, resulting in the divergence.
+\item \emph{What can you do to better approximate the actual solution with this method?}
+We can decrease the time interval to reduce the error. Fig.~\ref{fig:exp_euler} (right) shows the phase plot for dt = 0.002, which has an almost circular shape (stable limit cycle).
+\end{itemize}
+
+\subsubsection{Exercise Answer for Semi-implicit Euler}
+\begin{itemize}
+
+\item \emph{Is this method stable and when?}
+By looking at the phase plot, the method seems to be quite stable, although the shape does not fit a perfect circle (meaning a non-negligible error, although the error is not accumulating). 
+
+\item \emph{What about the accuracy of the obtained solution?}
+The accuracy can be computed as the mean squared error $e = \frac{1}{N} \sum_{n=1}{N} (\bm{y}-\bm{y}_{\text{true}})^2$. For $dt = 0.1$, the error is $e = 0.202$.  
+\end{itemize}
+
+\subsubsection{Exercise Answer for Runge-Kutta}
+\begin{itemize}
+\item \emph{What is the error of this method?}
+The mean squared error is $e = 2.58e-7$ for $dt = 0.1$, which is much lower than Semi-implicit euler method. 
+
+\item \emph{Do you expect the solution to diverge?}
+Looking at the phase plot, it does not seem to diverge. The error is also very small. 
+\end{itemize}
+
+\subsubsection{Exercise Answer for Adaptive Time Stepping}
+\begin{itemize}
+
+\item \emph{Change the density of the time points in np.linspace. What do you observe?}
+With different density, the solution seems to remain quite stable. Even with very low density, the solution is still stable. 
+\item \emph{Do you expect the solution to diverge?}
+Looking at the phase plot, it seems to make a stable limit cycle and does not seem to diverge.
+\item \emph{Which algorithms are supported by odeint?}
+Odeint supports 'LSODA' from FORTRAN library. The newer algorithm for numerical integration seems to be \emph{solve\_ivp}, which supports 'RK45', 'RK23', 'DOP853', 'Radau', 'BDF', and 'LSODA'. 
+\end{itemize}
 
 \subsection{Control and Optimization}
 \label{sec:control_opt}
@@ -166,10 +223,31 @@ u_2 = k_2^P y_2 + k_2^D \dot{y}_2.
 
 Now what is left is to choose the parameters $(k_1^P, k_1^D, k_2^P, k_2^D, \text{and} \alpha)$, as well as the initial state $(\bm{q}^0, \dot{\bm{q}}^0)$. We use the function $\emph{fmin}$ in Matlab to optimize these parameters, given an objective function. 
 
+\subsubsection{Objective function for optimizing the standard controller}
+For this part, I use the standard objective function given in the exercise,
+\begin{equation}
+F(\bm{\Phi}) = w_1*|\epsilon - \epsilon_d| + w_2*CoT,
+\end{equation}
+where $w_1$ and $w_2$ are the weights and $CoT$ is the cost of transport (as defined in the exercise). $\epsilon$ refers to the criteria of interest (e.g. velocity, step length, frequency), and $\epsilon_d$ is the desired value. Since CoT typically has high value, $w_2$ is set to be quite small, typically 3 order lower than $w_1$ (e.g. $w_1 = 3, w_2 = 1000$). The CoT term is useful to help the motion to be stable, even when we do not want to minimize CoT. 
+
+\subsubsection{Result}
 
 
 
-
-
-
-
+\renewcommand{\arraystretch}{1.}
+\begin{table}[!t]
+	\centering    
+      \caption{Parameters for standard controller}
+      \label{tab:standard_result}
+		
+	\begin{tabular}{l l | c  c  c }
+		\toprule
+\bf{Criteria} & \bf{Value} & $\bm{q}_0$ & $\dot{\bm{q}_0}$ & $(k_1^P, k_2^P, k_1^D, k_2^D, \alpha)$ \\
+\bf{Velocity} & 0.2 & (-0.283856, 0.345331, 0.005407) & ( 0.758883, -0.323396, 2.114896) & (476.490262, 160.040142, 72.798758, 7.454037, 0.001594) \\
+\bf{Velocity} & 0.9 & (-0.3711,   0.3816,   0.1293) & (  0.6068,  -1.1616,   3.8571) & ( 352.0519, 179.2402,  80.1826,   4.6536,   0.1947) \\
+\bf{Frequency} & 0.7 & (-0.283856, 0.345331, 0.005407) & ( 0.758883, -0.323396, 2.114896) & ( 476.490262, 160.040142, 72.798758, 7.454037, 0.001594 )\\
+\bf{Frequency} & 3.7 & (-0.168262, 0.260154, -0.014194) & ( 1.858029, 1.356398, 0.034423) & ( 304.269003, 189.627411, 134.508350, -0.045500, -0.183163) \\
+\bf{Step Length} & 0.21 & (-0.168262, 0.260154, -0.014194) & ( 1.858029, 1.356398, 0.034423) & ( 304.269003, 189.627411, 134.508350, -0.045500, -0.183163) \\
+\bf{Step Length} & 0.4 & (-0.037315, -0.610571, 0.000515) & ( 0.000042, 0.156022, 5.790911) & ( 244.527802, 269.296473, 53.476705, 6.514429, 0.156793) 
+	\end{tabular}
+\end{table}

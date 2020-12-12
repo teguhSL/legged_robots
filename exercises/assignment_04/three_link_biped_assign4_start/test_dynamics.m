@@ -45,3 +45,25 @@ sln.T{i} = T;
 sln.Y{i} = Y;
 sln.TE{i} = TE;
 sln.YE{i} = YE;
+
+
+
+%%%%%%TEST%%%%%%%%%
+
+x0 = [-0.414222; 0.397411; 0.241158; 1.451886; -0.035721; 4.614291; 304.269003; 189.627411; 134.508350; -0.045500; -0.183163];
+q0 = x0(1:3);
+dq0 = x0(4:6);
+x_opt = x0(7:end);
+% simulate
+num_steps = 30;
+sln = solve_eqns(q0, dq0, num_steps, x_opt);
+%animate(sln);
+results = analyse(sln, x_opt, true);
+
+x0 = [sln.Y{end}(1,:)'; x0(7:end)];
+x = x0;
+fprintf('s = 0.3 \n params = np.array([%f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f])\n', ...
+        x(1), x(2), x(3), x(4), x(5), x(6), x(7), x(8), x(9), x(10), x(11))
+
+fprintf('x0 = [%f; %f; %f; %f; %f; %f; %f; %f; %f; %f; %f];\n', ...
+        x(1), x(2), x(3), x(4), x(5), x(6), x(7), x(8), x(9), x(10), x(11))

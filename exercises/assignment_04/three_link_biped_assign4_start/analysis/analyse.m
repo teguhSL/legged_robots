@@ -72,6 +72,7 @@ results.cot = results.effort/sum(results.ds);
 
 results.dx_hs_mean = dx_hs_mean;
 results.mean_velocity = sum(results.ds)/T;
+%results.mean_velocity = sum(results.dx_hs_mean(7:9))/3;
 
 % calculate actuation (you can use the control function)
 
