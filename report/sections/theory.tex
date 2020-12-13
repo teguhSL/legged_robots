@@ -113,7 +113,7 @@ H_b^+ = & \quad m_1 \bm{r}_{{hm}_2}^+ \cross \dot{\bm{r}_2^+} && = m_1 (\bm{r}_{
 H_c^+ = & \quad m_3 \bm{r}_{{hm}_3}^+ \cross \dot{\bm{r}_3^+} && = m_3 (\bm{r}_{3}^+ - \bm{r}_{h}^+) \cross \dot{\bm{r}_3^+}.
 \end{alignat}
 
-We can rearrange the equations to obtain $\bm{H}^- = \bm{A}_{\_} \dot{\bm{q}}^-$ and $\bm{H}^- = \bm{A}_{+} \dot{\bm{q}}^+$. Then we can obtain the velocities after the impact by solving the linear equation $\bm{H}^- = \bm{H}^+$, 
+We can rearrange the equations to obtain $\bm{H}^- = \bm{A}_{\_} \dot{\bm{q}}^-$ and $\bm{H}^+ = \bm{A}_{+} \dot{\bm{q}}^+$. Then we can obtain the velocities after the impact by solving the linear equation $\bm{H}^- = \bm{H}^+$, 
 \begin{equation}
 \dot{\bm{q}}^+ = \bm{A}_{+}^{-1} \bm{A}_{\_}  \dot{\bm{q}}^-. 
 \end{equation}
@@ -203,39 +203,39 @@ Odeint supports 'LSODA' from FORTRAN library. The newer algorithm for numerical 
 \subsection{Control and Optimization}
 \label{sec:control_opt}
 
-The system during the swing phase is underactuated, i.e. there are three degrees of freedom to control but only two control inputs, as shown in Fig.~\ref{fig:control}. In the standard controller, we first choose the first control input $u_1$ to control the torso angle to be at a desired value $\alpha$, whereas the second control input $u_2$ is used to control the swing foot angle $q_2$. Expressing these as virtual constraints in terms of new variables $y_1$ and $y_2$, we set
-\begin{align}
-y_1 = q_3 - \alpha \\
-y_2 = -q_2 - q_1. 
-\end{align}
+The system during the swing phase is underactuated, i.e. there are three degrees of freedom to control but only two control inputs, as shown in Fig.~\ref{fig:simplified_model}. In the standard controller, we first choose the first control input $u_1$ to control the torso angle to be at a desired value $\alpha$, whereas the second control input $u_2$ is used to control the swing foot angle $q_2$. Expressing these as virtual constraints in terms of new variables $y_1$ and $y_2$, we set
+\begin{alignat}{1}
+y_1 = & \quad q_3 - \alpha \\
+y_2 = & \quad -q_2 - q_1. 
+\end{alignat}
 
 Differentiating this constraint, we obtain
 \begin{align}
-\dot{y}_1 = \dot{q}_3  \\
-\dot{y}_2 = -\dot{q}_2 - \dot{q}_1. 
+\dot{y}_1 = & \quad \dot{q}_3  \\
+\dot{y}_2 = & \quad -\dot{q}_2 - \dot{q}_1. 
 \end{align}
 
 We then set the controller as PD control to drive $y_1, y_2$ to zeros,
 \begin{align}
-u_1 = k_1^P y_1 + k_1^D \dot{y}_1 \\
-u_2 = k_2^P y_2 + k_2^D \dot{y}_2.
+u_1 = & \quad k_1^P y_1 + k_1^D \dot{y}_1 \\
+u_2 = & \quad k_2^P y_2 + k_2^D \dot{y}_2.
 \end{align}
 
-Now what is left is to choose the parameters $(k_1^P, k_1^D, k_2^P, k_2^D, \text{and} \alpha)$, as well as the initial state $(\bm{q}^0, \dot{\bm{q}}^0)$. We use the function $\emph{fmin}$ in Matlab to optimize these parameters, given an objective function. 
+Now what is left is to choose the parameters $(k_1^P, k_1^D, k_2^P, k_2^D, \text{and} ~ \alpha)$, as well as the initial state $(\bm{q}_0, \dot{\bm{q}}_0)$. I use the function $\emph{fminsearch}$ in Matlab to optimize these parameters, given an objective function. 
 
 \subsubsection{Objective function for optimizing the standard controller}
 For this part, I use the standard objective function given in the exercise,
 \begin{equation}
 F(\bm{\Phi}) = w_1*|\epsilon - \epsilon_d| + w_2*CoT,
 \end{equation}
-where $w_1$ and $w_2$ are the weights and $CoT$ is the cost of transport (as defined in the exercise). $\epsilon$ refers to the criteria of interest (e.g. velocity, step length, frequency), and $\epsilon_d$ is the desired value. Since CoT typically has high value, $w_2$ is set to be quite small, typically 3 order lower than $w_1$ (e.g. $w_1 = 3, w_2 = 1000$). The CoT term is useful to help the motion to be stable, even when we do not want to minimize CoT. 
+where $w_1$ and $w_2$ are the weights and $CoT$ is the cost of transport (as defined in the exercise). $\epsilon$ refers to the criteria of interest (e.g. velocity, step length, frequency), and $\epsilon_d$ is the desired value. Since CoT typically has high value, $w_2$ is set to be quite small, typically 3 order lower than $w_1$ (e.g. $w_1 = 3, w_2 = 0.001$). The CoT term is useful to help the motion to be stable, even when we do not want to minimize CoT. Finally, to avoid bad cases such as moving backwards or falling down, such event is detected and a large objective function value is assigned ($=1000$). 
 
 \subsubsection{Result}
-
+Table~\ref{tab:standard_result} shows the parameters obtained for various criteria. The controller, although simple, is able to reach quite a large range of criterias. 
 
 
 \renewcommand{\arraystretch}{1.}
-\begin{table}[!t]
+\begin{table}[h!]
 	\centering    
       \caption{Parameters for standard controller}
       \label{tab:standard_result}
@@ -243,6 +243,7 @@ where $w_1$ and $w_2$ are the weights and $CoT$ is the cost of transport (as def
 	\begin{tabular}{l l | c  c  c }
 		\toprule
 \bf{Criteria} & \bf{Value} & $\bm{q}_0$ & $\dot{\bm{q}_0}$ & $(k_1^P, k_2^P, k_1^D, k_2^D, \alpha)$ \\
+\midrule
 \bf{Velocity} & 0.2 & (-0.284, 0.345, 0.005) & ( 0.759, -0.323, 2.11) & (476, 160, 72, 7.45, 0.0016) \\
 \bf{Velocity} & 0.9 & (-0.371,   0.382,   0.129) & (  0.607,  -1.162,   3.857) & ( 352, 179,  80,   4.65,   0.194) \\
 \bf{Frequency} & 0.7 & (-0.284, 0.345, 0.005) & ( 0.759, -0.323, 2.11) & (476, 160, 72, 7.45, 0.0016) \\

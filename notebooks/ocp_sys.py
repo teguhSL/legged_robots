@@ -364,7 +364,7 @@ class Biped_Casadi():
             plt.pause(1e-6)
             self.fig.canvas.flush_events()
         
-    def animate(self, sln, dt = 0.001, skip = 10):
+    def animate(self, sln, dt = 0.001, skip = 10, to_save = False):
         tic = time.time();
         self.line1, self.line2, self.line3 = None, None, None
         self.marker1, self.marker2, self.marker3 = None, None, None
@@ -372,6 +372,7 @@ class Biped_Casadi():
 
         num_steps = len(sln['T'])
         r0 = np.zeros(2)
+        fig_idx = 1
         for j in range(num_steps):
             Y = sln['Y'][j]
             N = len(Y)
@@ -379,6 +380,9 @@ class Biped_Casadi():
                 q = Y[i, :3]
                 time.sleep(dt)
                 self.visualize(q, r0, fig = self.fig)
+                if to_save:
+                    plt.savefig('temp/walk'+str(fig_idx)+'.png')
+                    fig_idx += 1
             x0, _,_,_ = self.kin_swf(q)
             r0 = r0 + np.array([x0, 0])
 
@@ -607,7 +611,7 @@ class Biped_Casadi():
         sln = {'T' : [], 'Y' : [], 'TE' : [], 'YE' : []}
         
         for i in range(num_steps):
-            if i == 3 and self.to_use_noise_ext:
+            if i == 9 and self.to_use_noise_ext:
                 self.use_noise_ext = True
             else:
                 self.use_noise_ext = False

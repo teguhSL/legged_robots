@@ -1,0 +1,12 @@
+\section{Conclusion}
+\label{sec:conclusion}
+
+In this report, I have presented an optimal control formulation for a simplified 2D humanoid robot walking model. The parameters are optimized for various criteria (speed, step length, frequency), and robustness towards perturbation has been characterized. The optimal control problem is solved using ILQR, which is quite popular in robotics due to its fast computation. In addition, ILQR provides us not only with the optimal state and control trajectory, but also the feedback controller. 
+
+However, the formulation poses several difficulties. Firstly, choosing the objective function is not too easy. I set the objective function to mainly track the desired foot trajectory while keeping the torso at a specified angle. Secondly, the impact map results in discontinuity of the dynamics, which is a big problem for optimal control in general. I solve this by computing the optimal control for one foot step, and optimize the parameters such that the motion reaches a stable limit cycle. 
+
+While the resulting controller performs well, it can be made even more stable by considering several possible approaches. If the computation time can be made faster, we can recompute the ILQR at each iteration, i.e. doing Model Predictive Control (MPC). We can also not use the feedback gain of ILQR and instead use another controller, such as QP-based controller, or a shorter horizon MPC controller that can be computed faster. 
+
+
+
+
