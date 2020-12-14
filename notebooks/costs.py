@@ -60,7 +60,7 @@ class CostModelSum():
             
 class CostModelQuadraticTranslation():
     '''
-    The quadratic cost model for the end effector, p = f(x)
+    The quadratic cost model for the end effector position, p = f(x)
     '''
     def __init__(self, sys, W, p_ref = None):
         self.sys = sys
@@ -92,7 +92,7 @@ class CostModelQuadraticTranslation():
         
 class CostModelQuadraticLinVel():
     '''
-    The quadratic cost model for the end effector, p = f(x)
+    The quadratic cost model for the end effector velocity, dp = f(x)
     '''
     def __init__(self, sys, W, p_ref = None):
         self.sys = sys

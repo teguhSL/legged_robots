@@ -1,7 +1,6 @@
 function u = control(t, q, dq, q0, dq0, step_number, parameters)
 % You may call control_hyper_parameters and desired_outputs in this function
 % you don't necessarily need to use all the inputs to this control function
-q(1) = q(1) + rand()*0.01;
 % extract parameters
 %parameters = control_hyper_parameters(0);
 kp1 = parameters(1);

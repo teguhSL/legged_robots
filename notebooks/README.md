@@ -1,5 +1,11 @@
 ## Requirements##
 Install crocoddyl:
 ```bash
-https://github.com/loco-3d/crocoddyl
+see https://github.com/loco-3d/crocoddyl
 ```
+
+Install casadi:
+```bash
+pip install casadi
+```
+

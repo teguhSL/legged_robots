@@ -125,7 +125,9 @@ In practice, optimizing for only one foot step sometimes makes a stable controll
 
 Table~\ref{tab:ilqr_result} shows the parameters for the ILQR controller for various criteria. The parameters for the extreme value of one criteria turns out to yield another extreme value of another criteria, hence the same parameters $\bm{\Phi}$. For example, the controller for maximum velocity here also yield the largest step length in our experiment. 
 
-Here we note that the step length predicted by the ILQR controller may not correspond to that happen during the simulation, due to the feet touching the ground before that. This is the case for the minimum step length (0.117 m). The desired step length input to the controller is 0.25, but the interaction between the controller and the actual system results in a different motion, which looks quite interesting (it can be seen in the supplementary video). Fig.~\ref{fig:ilqr_plot} shows the plots of various variables of interest for the controller with velocity = 0.877 m/s. 
+Here we note that the step length predicted by the ILQR controller may not correspond to that happen during the simulation, due to the feet touching the ground before that. This is the case for the minimum step length (0.117 m). The desired step length input to the controller is 0.25, but the interaction between the controller and the actual system results in a different motion, which looks quite interesting (it can be seen in the supplementary video). Fig.~\ref{fig:ilqr_plot} shows the plots of various variables of interest for the controller with velocity = 0.877 m/s. Since ILQR plans a more optimal motion, it consumes less energy than the standard controller. In this case, the Cost of Transport (CoT) of the ILQR controller is 30\% lower than the standard controller.
+
+Sometimes, the controller produces an asymmetric gait, such as the case when the frequency is 1.7 Hz here. Fig.~\ref{fig:ilqr_plot_asym} shows the plot for this case. It can be seen that the motion of one step and the next step are not similar at all. The periodicity of the movement is at every two steps, instead of at every one step. It oscillates between slightly lower and higher velocities, and correspondingly shorter and longer steps. This peculiar gait can be seen in the supplementary video. 
 
 \subsubsection{Internal and External Perturbation}
 I do not have time to run the optimization for handling the perturbation, so I just try the controller with the parameters that I find most stable qualitatively. While playing with the optimization, I often observe that the motion is quite stable when the velocity is around ~0.8m/s, so I optimize the ILQR controller around this speed. I obtain the parameters as $\bm{q}_0 = (-0.275,  0.319,  0.192),\dot{\bm{q}_0} = (0.774, -0.874,  4.05), \alpha = 0.189, \text{step length} = 0.302, T = 0.382$.
@@ -134,7 +136,7 @@ With these parameters, the maximum internal perturbation is $\sigma_q = [0.1, 0.
 
 We note here that ILQR controller is not particularly robust towards large perturbation. The feedback gain $\bm{K}_t$ is only optimal and valid near the optimal trajectory $(\bm{x}^*, \bm{u}^*)$. To perform more stably, one possible idea is to track the optimal trajectory using another controller, e.g. PD controller, or Quadratic Programming (QP) controller as in~\cite{park2017high}. I have tried implementing this, but I did not have time to find the good parameters for the QP. 
 
-Another possible approach is to recompute the ILQR at each iteration in Model Predictive Control (MPC) fashion. This will give good result and possibly the most stable. However, this requires a lot of computational time, and I cannot make the computation time below 1ms as would be required here. In our implementation, the ILQR requires ~100ms for 1 iteration. A hierarchical controller may be an option, i.e. when the MPC is computed at slower frequency (e.g. 100 Hz). 
+Another possible approach is to recompute the ILQR at each iteration in Model Predictive Control (MPC) fashion. This will give good result and possibly the most stable. However, this requires a lot of computational time, and I cannot make the computation time below 1ms as would be required here. In our implementation, the ILQR requires ~100ms for 1 iteration. A hierarchical controller may be an option, i.e. when the MPC is computed at slower frequency (e.g. 100 Hz). Finally, one way to design a robust controller is to minimize the maximum eigenvalue of the Poincare map, as discussed in \cite{park2017high}.  
 
 
 \renewcommand{\arraystretch}{1.}
@@ -148,7 +150,7 @@ Another possible approach is to recompute the ILQR at each iteration in Model Pr
 \bf{Criteria} & \bf{Value} & $\bm{q}_0$ & $\dot{\bm{q}_0}$ & $\alpha$ &  \bf{Step} & $T$\\
 \bf{Vel} & 0.31 & (-0.17,  0.27,  0.05) & (  1.8 ,  0.99,  0.02) &   0.05 & 0.25 & 0.268 \\
 \bf{Vel} & 0.877 &( -0.34,  0.39,  0.35) & (  0.78, -1.45,  5.44) &   0.34&       0.36 & 0.421\\
-\bf{Freq} & 2.2 & (-0.34,  0.39,  0.35) & ( 0.79, -1.45,  5.44) &   0.34&0.36 &0.421  \\
+\bf{Freq} & 1.7 & (-0.28,  0.36,  0.05) & ( 0.79, -0.52 ,  2.65) &   0.05 &  0.29 &0.613  \\
 \bf{Freq} & 3.65 & (-0.17 ,  0.27 ,  0.05) & (  1.84,  0.99,  0.02) &   0.05 &        0.25 &0.268 \\
 \bf{Step} & 0.117 &(-0.17,  0.27,  0.05) & (  1.84 ,  0.99,  0.02) &  0.05& 0.25& 0.268\\
 \bf{Step} & 0.372 &(-0.34,  0.39,  0.35) & (  0.79, -1.45,  5.44) &   0.34& 0.36& 0.421 
@@ -157,10 +159,14 @@ Another possible approach is to recompute the ILQR at each iteration in Model Pr
 
 
 
-
 \begin{figure}
 \includegraphics[width=0.99\columnwidth]{example_v09_prev}
-\caption{Various plots for the ILQR controller simulation with velocity = 0.877}
+\caption{Various plots for the ILQR controller simulation with velocity = 0.877 m/s}
 \label{fig:ilqr_plot}
 \end{figure}
 
+\begin{figure}
+\includegraphics[width=0.99\columnwidth]{example_f17_asymm}
+\caption{Various plots for the ILQR controller simulation with frequency = 1.7 Hz. Note that the gait is asymmetric.}
+\label{fig:ilqr_plot_asym}
+\end{figure}
