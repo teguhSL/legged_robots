@@ -7,56 +7,7 @@ from casadi import mtimes, MX, sin, cos, vertcat, horzcat, sum1, cross, Function
 from utils import *
 from functools import partial
 from scipy.integrate import solve_ivp
-import pinocchio
-import crocoddyl
-import quadprog
-
-           
-class ActionModelRobot(crocoddyl.ActionModelAbstract):
-    def __init__(self, state, nu):
-        crocoddyl.ActionModelAbstract.__init__(self, state, nu)
-        
-    def init_robot_sys(self,robot_sys, nr = 1):
-        self.robot_sys = robot_sys
-        self.Du = robot_sys.Du
-        self.Dx = robot_sys.Dx
-        self.Dr = nr
-        
-    def set_cost(self, cost_model):
-        self.cost_model = cost_model
-        
-    def calc(self, data, x, u):
-        #calculate the cost
-        data.cost = self.cost_model.calc(x,u)
-        
-        #calculate the next state
-        data.xnext = self.robot_sys.step(x,u)
-        
-    def calcDiff(self, data, x, u, recalc = False):
-        if recalc:
-            self.calc(data, x, u)
-
-        #compute cost derivatives
-        self.cost_model.calcDiff(x, u)
-        data.Lx = self.cost_model.Lx.copy()
-        data.Lxx = self.cost_model.Lxx.copy()
-        data.Lu = self.cost_model.Lu.copy()
-        data.Luu = self.cost_model.Luu.copy()
-        
-        #compute dynamic derivatives 
-        A, B = self.robot_sys.compute_matrices(x,u)
-        data.Fx = A.copy()
-        data.Fu = B.copy()
-        
-    def createData(self):
-        data = ActionDataRobot(self)
-        return data
-
-class ActionDataRobot(crocoddyl.ActionDataAbstract):
-    def __init__(self, model):
-        crocoddyl.ActionDataAbstract.__init__(self,model)
-        
-        
+  
 
 class Biped_Casadi():
     def __init__(self, m1 = 7, m2 = 7, m3 = 17,
@@ -160,7 +111,7 @@ class Biped_Casadi():
         return x_swf, z_swf, dx_swf, dz_swf
     
     
-    def eval_A_m(self, q_m):
+    def eval_A_m(self, q_m, mode = 'numpy'):
         t2 = q_m[0]-q_m[1]
         t3 = cos(t2)
         t4 = self.l1**2
@@ -170,13 +121,19 @@ class Biped_Casadi():
         t8 = self.l3**2
         m, m3 = self.m1, self.m3
         l1,l2,l3 = self.l1, self.l2, self.l3
-        A_m = vertcat(t5-l1*l2*m*t3-l1*l2*m3*t3-l1*l3*m3*t7*(1.0/2.0), 
-                        t5,l1*l3*m3*t7*(-1.0/2.0),l2**2*m*(1.0/4.0),0.0,0.0,\
-                        m3*t8*(-1.0/4.0)-l2*l3*m3*cos(q_m[1]-q_m[2])*(1.0/2.0),\
-                        0.0,m3*t8*(-1.0/4.0)).reshape((3,3))
+        if mode == 'casadi':
+            A_m = vertcat(t5-l1*l2*m*t3-l1*l2*m3*t3-l1*l3*m3*t7*(1.0/2.0), 
+                            t5,l1*l3*m3*t7*(-1.0/2.0),l2**2*m*(1.0/4.0),0.0,0.0,\
+                            m3*t8*(-1.0/4.0)-l2*l3*m3*cos(q_m[1]-q_m[2])*(1.0/2.0),\
+                            0.0,m3*t8*(-1.0/4.0)).reshape((3,3))
+        elif mode == 'numpy':
+            A_m = np.array([t5-l1*l2*m*t3-l1*l2*m3*t3-l1*l3*m3*t7*(1.0/2.0), 
+                            t5,l1*l3*m3*t7*(-1.0/2.0),l2**2*m*(1.0/4.0),0.0,0.0,\
+                            m3*t8*(-1.0/4.0)-l2*l3*m3*cos(q_m[1]-q_m[2])*(1.0/2.0),\
+                            0.0,m3*t8*(-1.0/4.0)]).reshape((3,3)).T       
         return A_m
     
-    def eval_A_p(self, q_p):
+    def eval_A_p(self, q_p, mode = 'numpy'):
         q1_p = q_p[0]
         q2_p = q_p[1]
         q3_p = q_p[2]
@@ -190,18 +147,23 @@ class Biped_Casadi():
         t7 = cos(t6);
         t8 = l2**2;
         t9 = l3**2;
-        A_p = vertcat(t5-m*t2*(5.0/4.0)-m3*t2-l1*l3*m3*t7*(1.0/2.0),t5,l1*l3*m3*t7*(-1.0/2.0),t5-m*t8*(1.0/4.0),
-                       m*t8*(-1.0/4.0),0.0,m3*t9*(-1.0/4.0)-l1*l3*m3*t7*(1.0/2.0),0.0,m3*t9*(-1.0/4.0)).reshape((3,3))
+        if mode == 'casadi':
+            A_p = vertcat(t5-m*t2*(5.0/4.0)-m3*t2-l1*l3*m3*t7*(1.0/2.0),t5,l1*l3*m3*t7*(-1.0/2.0),t5-m*t8*(1.0/4.0),
+                           m*t8*(-1.0/4.0),0.0,m3*t9*(-1.0/4.0)-l1*l3*m3*t7*(1.0/2.0),0.0,m3*t9*(-1.0/4.0)).reshape((3,3))
+        elif mode == 'numpy':
+            A_p = np.array([t5-m*t2*(5.0/4.0)-m3*t2-l1*l3*m3*t7*(1.0/2.0),t5,l1*l3*m3*t7*(-1.0/2.0),t5-m*t8*(1.0/4.0),
+                           m*t8*(-1.0/4.0),0.0,m3*t9*(-1.0/4.0)-l1*l3*m3*t7*(1.0/2.0),0.0,m3*t9*(-1.0/4.0)]).reshape((3,3)).T
+
         return A_p
     
-    def eval_B(self, mode = 'casadi'):
+    def eval_B(self, mode = 'numpy'):
         if mode == 'casadi':
             B = vertcat(1.0,0.0,0.0, 1.0,-1.0,-1.0).reshape((2,3)).T
         elif mode == 'numpy':
             B = np.array([1.0,0.0,0.0, 1.0,-1.0,-1.0]).reshape(3,2)
         return B
     
-    def eval_C(self, q, dq, mode = 'casadi'):
+    def eval_C(self, q, dq, mode = 'numpy'):
         q1, q2, q3 = q[0], q[1], q[2]
         dq1, dq2, dq3 = dq[0], dq[1], dq[2]
 
@@ -220,7 +182,7 @@ class Biped_Casadi():
         return C
         
     
-    def eval_G(self, q, mode = 'casadi'):
+    def eval_G(self, q, mode = 'numpy'):
         q1, q2, q3 = q[0], q[1], q[2]
         m1, m2, m3, l1, l2, l3, g =  self.m1, self.m2,  self.m3, self.l1, self.l2, self.l3, self.g
         
@@ -233,7 +195,7 @@ class Biped_Casadi():
             
         return G
     
-    def eval_M(self, q, mode = 'casadi'):
+    def eval_M(self, q, mode = 'numpy'):
         q1, q2, q3 = q[0], q[1], q[2]
         m1, m2, m3, l1, l2, l3, g =  self.m1, self.m2,  self.m3, self.l1, self.l2, self.l3, self.g
 
@@ -264,10 +226,11 @@ class Biped_Casadi():
         #step using Euler integration
         q = y[:3]
         dq = y[3:]
-        M = self.eval_M(q)
-        C = self.eval_C(q, dq)
-        G = self.eval_G(q)
-        B = self.eval_B()
+        mode = 'casadi'
+        M = self.eval_M(q, mode)
+        C = self.eval_C(q, dq, mode)
+        G = self.eval_G(q, mode)
+        B = self.eval_B(mode)
         dy = vertcat( y[3:], solve(M, -mtimes(C,dq) - G + mtimes(B,u)))
         ynext = y + dy*self.dT
         return ynext
